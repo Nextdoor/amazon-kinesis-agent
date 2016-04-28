@@ -58,10 +58,6 @@ fail() {
   exit 1
 }
 
-download_dependencies() {
-  which ant > /dev/null || $install_package ant
-}
-
 download_jar() {
   group_id=$1
   artifact_id=$2
@@ -228,17 +224,14 @@ COMMAND=$1
 case "$COMMAND" in
   --build)
     shift
-    download_dependencies
     do_build "$@"
     ;;
   --install)
     shift
-    download_dependencies
     do_install "$@"
     ;;
   --uninstall)
     shift
-    download_dependencies
     do_uninstall "$@"
     echo "Kinesis Agent has been uninstalled"
     ;;
