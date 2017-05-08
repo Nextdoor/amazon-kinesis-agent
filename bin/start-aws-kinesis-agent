@@ -3,7 +3,7 @@
 MIN_JAVA_VERSION=1.7
 JAVA_START_HEAP=${JAVA_START_HEAP:-32m}
 JAVA_MAX_HEAP=${JAVA_MAX_HEAP:-512m}
-OOME_ARGS_DEFAULT="-XX:OnOutOfMemoryError=\"( kill -15 %p && sleep 30 && pgrep -f 'aws-kinesis-agent' | xargs kill -9 & )\""
+OOME_ARGS_DEFAULT="-XX:OnOutOfMemoryError=\"/bin/kill -9 %p\""
 OOME_ARGS=${OOME_ARGS:-$OOME_ARGS_DEFAULT}
 
 function _debug_msg() {

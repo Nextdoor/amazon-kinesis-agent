@@ -4,7 +4,7 @@
 
 JAVA_START_HEAP="256m"
 JAVA_MAX_HEAP="512m"
-OOME_ARGS_DEFAULT="-XX:OnOutOfMemoryError=\"( kill -15 %p && sleep 30 && pgrep -f 'aws-kinesis-agent' | xargs kill -9 & )\""
+OOME_ARGS_DEFAULT="-XX:OnOutOfMemoryError=\"/bin/kill -9 %p\""
 OOME_ARGS=${OOME_ARGS:-$OOME_ARGS_DEFAULT}
 
 JAVA_DIR="/usr/share/java"
