@@ -4,8 +4,8 @@
 
 JAVA_START_HEAP="256m"
 JAVA_MAX_HEAP="512m"
-OOME_ARGS_DEFAULT="-XX:OnOutOfMemoryError=\"/bin/kill -9 %p\""
-OOME_ARGS=${OOME_ARGS:-$OOME_ARGS_DEFAULT}
+OOME_ARGS_DEFAULT="\"/bin/kill -9 %p\""
+OOME_ARGS="-XX:OnOutOfMemoryError=${OOME_ARGS:-$OOME_ARGS_DEFAULT}"
 
 JAVA_DIR="/usr/share/java"
 LIB_DIR="/usr/share/aws-kinesis-agent/lib"
