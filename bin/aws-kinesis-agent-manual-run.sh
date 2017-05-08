@@ -4,6 +4,8 @@
 
 JAVA_START_HEAP="256m"
 JAVA_MAX_HEAP="512m"
+OOME_ARGS_DEFAULT="-XX:OnOutOfMemoryError=\"( kill -15 %p && sleep 30 && pgrep -f 'aws-kinesis-agent' | xargs kill -9 & )\""
+OOME_ARGS=${OOME_ARGS:-$OOME_ARGS_DEFAULT}
 
 JAVA_DIR="/usr/share/java"
 LIB_DIR="/usr/share/aws-kinesis-agent/lib"
@@ -11,7 +13,6 @@ LIB_DIR="/usr/share/aws-kinesis-agent/lib"
 CLASSPATH="$LIB_DIR":$(find "$LIB_DIR" -type f -name \*.jar | paste -s -d:):"$CLASSPATH"
 
 JAVACMD="java"
-OOME_ARGS="( kill -15 %p && sleep 30 && [[ \"%p\" == \"$(pgrep -f 'aws-kinesis-agent')\" ]] && pgrep -f 'aws-kinesis-agent' | xargs kill -9 & )"
 JVM_ARGS="-server -Xms${JAVA_START_HEAP} -Xmx${JAVA_MAX_HEAP} $JVM_ARGS"
 
 MAIN_CLASS="com.amazon.kinesis.streaming.agent.Agent"
