@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2014-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * 
  * Licensed under the Amazon Software License (the "License").
  * You may not use this file except in compliance with the License. 
@@ -19,11 +19,9 @@ import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.List;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
-import java.util.Collections;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -90,7 +88,7 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
                 config = readConfigurationFile(Paths.get(opts.getConfigFile()));
             }
             // Read the config directory
-            config = readConfigurationDirectory(config);            
+            config = readConfigurationDirectory(config);
             // Initialize and start the agent
             AgentContext agentContext = new AgentContext(config);
             if (agentContext.flows().isEmpty()) {
@@ -174,7 +172,7 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
         HashMap<String, Object> newConfig = new HashMap<String,Object>(agentConfiguration.getConfigMap());
         newConfig.put("flows", flows);
         return new AgentConfiguration(newConfig);
-    }    
+    } 
 
     private final AgentContext agentContext;
     private final HeartbeatService heartbeat;
