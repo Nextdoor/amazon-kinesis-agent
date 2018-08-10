@@ -6,6 +6,15 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin:$PATH
 DAEMON_NAME=aws-kinesis-agent
 SERVICE="service $DAEMON_NAME"
 
+# If using systemd and the service is disabled skip a babysit check.
+#
+# We don't do this for upstart/sysvinit systems as a `restart` will fail immediately
+# when trying to a stop a service that isn't registred to be running.
+# Additionally checking if a service is enabled is not straightforward as in systemd.
+if [ -d /run/systemd/system ]; then
+   systemctl is-enabled "${DAEMON_NAME}.service" >/dev/null 2>&1 || exit 0
+fi
+
 function start_agent() {
   $SERVICE restart || exit 1
   sleep 3
