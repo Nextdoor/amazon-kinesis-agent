@@ -47,9 +47,7 @@ do_start () {
           --make-pidfile \
           --pidfile $PIDFILE \
           --chuid $AGENT_USER \
-          --startas $DAEMON_EXEC -- \
-                -L $LOGLEVEL \
-                $ARGS
+          --startas $DAEMON_EXEC -- $ARGS
 }
 
 do_stop () {

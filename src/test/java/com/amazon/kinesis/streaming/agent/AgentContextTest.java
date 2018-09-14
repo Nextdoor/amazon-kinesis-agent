@@ -49,7 +49,7 @@ public class AgentContextTest {
     
     @Test
     public void testInstanceTag() throws IOException {
-        AgentContext context = new AgentContext(getTestConfiguration("agentconfig1.json"));
+        AgentContext context = new AgentContext(getTestConfiguration("/agentconfig1.json"));
         context = spy(context);
         assertNotNull(context.getInstanceTag());
     }

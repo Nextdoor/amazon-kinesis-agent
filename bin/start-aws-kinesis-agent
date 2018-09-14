@@ -3,6 +3,7 @@
 MIN_JAVA_VERSION=1.7
 JAVA_START_HEAP=${JAVA_START_HEAP:-32m}
 JAVA_MAX_HEAP=${JAVA_MAX_HEAP:-512m}
+JAR_NAME=amazon-kinesis-agent.jar
 OOME_ARGS_DEFAULT="\"/bin/kill -9 %p\""
 OOME_ARGS="-XX:OnOutOfMemoryError=${OOME_ARGS:-$OOME_ARGS_DEFAULT}"
 
@@ -121,14 +122,8 @@ LIB_DIR=$(cd "$BIN_DIR"/../share/$DAEMON_NAME/lib && pwd)
 _debug_msg "BIN_DIR=${BIN_DIR}"
 _debug_msg "LIB_DIR=${LIB_DIR}"
 _debug_msg "PWD=${PWD}"
-CLASSPATH="$LIB_DIR":$(find "$LIB_DIR" -type f -name \*.jar | paste -s -d:):"${JAVA_DIR}/*":"${CLASSPATH}"
-_debug_msg CLASSPATH=$CLASSPATH
 set +e
 
 JVM_ARGS="-server -Xms${JAVA_START_HEAP} -Xmx${JAVA_MAX_HEAP} $JVM_ARGS"
 
-MAIN_CLASS="com.amazon.kinesis.streaming.agent.Agent"
-
-exec $JAVACMD $JVM_ARGS "$OOME_ARGS" \
-  -cp "$CLASSPATH" \
-  $MAIN_CLASS "$@"
+exec $JAVACMD $JVM_ARGS "$OOME_ARGS" -jar ${LIB_DIR}/${JAR_NAME} "$@"

@@ -150,7 +150,7 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
     
     private static AgentConfiguration readConfigurationDirectory(AgentConfiguration agentConfiguration) {
         final String DEFAULT_CONFIG_DIRECTORY = "/etc/aws-kinesis/agent.d/";
-        final Logger logger = Logging.getLogger(Agent.class);
+        final Logger logger = LoggerFactory.getLogger(Agent.class);
 
         File configDir = new File(DEFAULT_CONFIG_DIRECTORY);
 

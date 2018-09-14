@@ -6,6 +6,12 @@ set -e
 # If we're debugging, be really loudly verbose
 [[ ! -z $DEBUG ]] && set -x
 
+# This script only works if Maven is installed.. test for it.
+if [[ ! -e $(which mvn) ]]; then
+  echo 'You must have maven2 and a JDK installed.'
+  exit 1
+fi
+
 # Attempt to load up the /etc/lsb-release file to determine our OS. If none is
 # found, we default our settings to RHEL/Amazon Linux as the original behavior
 # of this script intended.
@@ -26,7 +32,6 @@ fi
 # certain things
 case "$dist" in
   Ubuntu)
-    install_package="apt-get install -y"
     init_dir=/etc/init.d
     sysconfig_dir=/etc/default ;;
   Debian)
@@ -34,7 +39,6 @@ case "$dist" in
     init_dir=/etc/init.d
     sysconfig_dir=/etc/default ;;
   *)
-    install_package="yum install -y"
     init_dir=/etc/rc.d/init.d
     sysconfig_dir=/etc/sysconfig ;;
 esac
@@ -46,7 +50,6 @@ cron_dir=/etc/cron.d
 config_dir=/etc/aws-kinesis
 config_flow_dir=${config_dir}/agent.d
 jar_dir=/usr/share/${daemon_name}/lib
-dependencies_dir=./dependencies
 log_dir=/var/log/${daemon_name}
 state_dir=/var/run/${daemon_name}
 agent_service=${init_dir}/${daemon_name}
@@ -101,15 +104,27 @@ do_uninstall () {
 }
 
 do_build () {
-  mvn package || fail "Failed to build the Java project"
+  mvn -s .m2/conf/settings.xml package -DskipTests || fail "Failed to build the Java project"
 }
 
 do_install () {
   do_uninstall
+
+  # Discover the version of the target binary - this is used to know the file
+  # name that is going to be produced when the mvn package command runs.
+  echo -n 'Discovering package version... '
+  JAR_PREFIX=$(mvn -q \
+      -Dexec.executable=echo \
+      -Dexec.args='${project.artifactId}-${project.version}' \
+      --non-recursive \
+      exec:exec)
+  echo $JAR_PREFIX
   
-  echo "Installing Kinesis Agent ..."
-  
-  do_build
+  echo "Installing Kinesis Agent ${JAR_PREFIX}"
+
+  # Only build if we need to.. but leave the do_build function untouched in
+  # case someone wants to force the build.
+  test -f ./target/${JAR_PREFIX}-jar-with-dependencies.jar || do_build
   
   install -d ${config_dir}
   install -d ${config_flow_dir}
@@ -119,14 +134,15 @@ do_install () {
   install -d ${sysconfig_dir}
   install -d ${log_dir}
   install -d ${state_dir}
+  install -m644 ./target/${JAR_PREFIX}-jar-with-dependencies.jar ${jar_dir}
   install -m755 ./bin/start-${daemon_name} ${bin_dir}
   install -m755 ./bin/${daemon_name}-babysit ${bin_dir}
-  install -m644 ./${dependencies_dir}/* ${jar_dir}
-  install -m644 ./ant_build/lib/* ${jar_dir}
   install -m755 ./bin/${daemon_name}.${dist} ${init_dir}/${daemon_name}
   install -m644 ./support/${daemon_name}.cron ${cron_dir}/${daemon_name}
   install -m644 ./support/${daemon_name}.sysconfig ${sysconfig_dir}/${daemon_name}
   install -m644 ./src/main/resources/log4j.xml ${config_dir}
+
+  pushd ${jar_dir} && ln -s ${JAR_PREFIX}-jar-with-dependencies.jar amazon-kinesis-agent.jar && popd
 
   # add a user for starting the agent
   id -u $agent_user_name > /dev/null 2>&1 || \
