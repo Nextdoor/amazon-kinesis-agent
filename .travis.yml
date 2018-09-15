@@ -7,11 +7,7 @@ env:
 install:
   - true
 before_deploy:
-  - pwd
-  - mvn clean
-  - mvn dependency:go-offline
-  - mvn test
-  - mvn package -DskipTests
+  - mvn -s .m2/conf/settings.xml package -DskipTests
   - tar -zcvf /tmp/amazon-kinesis-agent-${TRAVIS_TAG}.tgz .
 deploy:
   - provider: releases
