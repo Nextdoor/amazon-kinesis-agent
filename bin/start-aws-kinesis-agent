@@ -122,8 +122,10 @@ LIB_DIR=$(cd "$BIN_DIR"/../share/$DAEMON_NAME/lib && pwd)
 _debug_msg "BIN_DIR=${BIN_DIR}"
 _debug_msg "LIB_DIR=${LIB_DIR}"
 _debug_msg "PWD=${PWD}"
+CLASSPATH="$LIB_DIR":$(find "$LIB_DIR" -type f -name \*.jar | paste -s -d:):"${JAVA_DIR}/*":"${CLASSPATH}"
+_debug_msg CLASSPATH=$CLASSPATH
 set +e
 
 JVM_ARGS="-server -Xms${JAVA_START_HEAP} -Xmx${JAVA_MAX_HEAP} $JVM_ARGS"
 
-exec $JAVACMD $JVM_ARGS "$OOME_ARGS" -jar ${LIB_DIR}/${JAR_NAME} "$@"
+exec $JAVACMD $JVM_ARGS -cp "$CLASSPATH" "$OOME_ARGS" -jar ${LIB_DIR}/${JAR_NAME} "$@"
