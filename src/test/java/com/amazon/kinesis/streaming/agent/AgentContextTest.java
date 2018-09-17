@@ -24,7 +24,6 @@ public class AgentContextTest {
 
     private Configuration getTestConfiguration(String fileName)
             throws IOException {
-        System.out.println(this.getClass().getResource(".").getPath());
         try (InputStream i = this.getClass().getResourceAsStream(fileName)) {
             return Configuration.get(i);
         }
