@@ -429,7 +429,7 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
             recordsParsed += Metrics.getMetric(tailerMetrics.getValue(), Metrics.PARSER_TOTAL_RECORDS_PARSED_METRIC, zero).get();
             recordsSent += Metrics.getMetric(tailerMetrics.getValue(), Metrics.SENDER_TOTAL_RECORDS_SENT_METRIC, zero).get();
         }
-        globalMetrics.put(TOTAL_FILES_BEHIND, bytesBehind);
+        globalMetrics.put(TOTAL_BYTES_BEHIND, bytesBehind);
         globalMetrics.put(TOTAL_FILES_BEHIND, filesBehind);
         globalMetrics.put(TOTAL_BYTES_CONSUMED, bytesConsumed);
         globalMetrics.put(TOTAL_RECORDS_PARSED, recordsParsed);
