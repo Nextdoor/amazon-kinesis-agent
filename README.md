@@ -89,10 +89,10 @@ For other distributions or platforms, you can build the Java project with the fo
 sudo ./setup --build
 ```
 
-or by using Ant target as you would build any Java program: 
+or by using Maven target as you would build any Java program: 
 
 ```sh
-ant [-Dbuild.dependencies=DEPENDENCY_DIR]
+mvn package
 ```
 
 If you use Ant command, you need to download all the dependencies listed in pom.xml before building the Java program. **DEPENDENCY_DIR** is the directory where you download and store the dependencies. 
@@ -123,5 +123,5 @@ java -cp CLASSPATH "com.amazon.kinesis.streaming.agent.Agent"
 [kinesis-firehose]: https://aws.amazon.com/kinesis/firehose/
 [kinesis-stream-create]: http://docs.aws.amazon.com/streams/latest/dev/kinesis-using-sdk-java-create-stream.html
 [kinesis-firehose-create]: http://docs.aws.amazon.com/firehose/latest/dev/basic-create.html
-[kinesis-stream-agent-guide]: http://docs.aws.amazon.com/streams/latest/dev/writing-with-agents.html
+[kinesis-stream-agent-guide]: http://docs.aws.amazon.com/kinesis/latest/dev/writing-with-agents.html
 [kinesis-firehose-agent-guide]: http://docs.aws.amazon.com/firehose/latest/dev/writing-with-agents.html

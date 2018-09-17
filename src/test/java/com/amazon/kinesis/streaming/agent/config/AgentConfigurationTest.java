@@ -54,7 +54,7 @@ public class AgentConfigurationTest {
 
     @Test
     public void testParseJSONConfigs() throws IOException {
-        AgentConfiguration config = getTestConfiguration("agentconfig1.json");
+        AgentConfiguration config = getTestConfiguration("/agentconfig1.json");
         Assert.assertEquals(config.accessKeyId(), "ACCESS_ID");
         Assert.assertEquals(config.secretKey(), "SECRET_KEY");
         Assert.assertFalse(config.cloudwatchEmitMetrics());
@@ -108,7 +108,7 @@ public class AgentConfigurationTest {
     
     @Test
     public void testEndpointConfig() throws IOException {
-    	AgentConfiguration config = getTestConfiguration("agentconfig1.json");
+    	AgentConfiguration config = getTestConfiguration("/agentconfig1.json");
         Assert.assertEquals(config.firehoseEndpoint(), "https://firehose.us-east-1.amazonaws.com");
         Assert.assertTrue(Strings.isNullOrEmpty(config.kinesisEndpoint()));
         Assert.assertTrue(Strings.isNullOrEmpty(config.cloudwatchEndpoint()));

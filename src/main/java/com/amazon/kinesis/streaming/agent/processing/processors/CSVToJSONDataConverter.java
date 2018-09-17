@@ -15,49 +15,52 @@ package com.amazon.kinesis.streaming.agent.processing.processors;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.amazon.kinesis.streaming.agent.ByteBuffers;
-import com.amazon.kinesis.streaming.agent.Logging;
 import com.amazon.kinesis.streaming.agent.config.Configuration;
 import com.amazon.kinesis.streaming.agent.processing.exceptions.DataConversionException;
-import com.amazon.kinesis.streaming.agent.processing.exceptions.LogParsingException;
 import com.amazon.kinesis.streaming.agent.processing.interfaces.IDataConverter;
 import com.amazon.kinesis.streaming.agent.processing.interfaces.IJSONPrinter;
-import com.amazon.kinesis.streaming.agent.processing.interfaces.ILogParser;
 import com.amazon.kinesis.streaming.agent.processing.utils.ProcessingUtilsFactory;
+import org.slf4j.LoggerFactory;
 
 /**
- * Parse the log entries from log file, and convert the log entries into JSON.
+ * Convert a CSV record into JSON record.
  * 
- * Configuration of this converter looks like:
+ * customFieldNames is required. 
+ * Optional delimiter other than comma can be configured.
+ * Optional jsonFormat can be used for pretty printed json.
+ * 
+ * Configuration looks like:
  * {
- *     "optionName": "LOGTOJSON",
- *     "logFormat": "COMMONAPACHELOG",
- *     "matchPattern": "OPTIONAL_REGEX",
- *     "customFieldNames": [ "column1", "column2", ... ]
+ *     "optionName": "CSVTOJSON",
+ *     "customFieldNames": [ "field1", "field2", ... ],
+ *     "delimiter": "\\t"
  * }
  * 
  * @author chaocheq
  *
  */
-public class LogToJSONDataConverter implements IDataConverter {
+public class CSVToJSONDataConverter implements IDataConverter {
     
-    private List<String> fields;
-    private ILogParser logParser;
-    private IJSONPrinter jsonProducer;
+    private static String FIELDS_KEY = "customFieldNames";
+    private static String DELIMITER_KEY = "delimiter";
+    private final List<String> fieldNames;
+    private final String delimiter;
+    private final IJSONPrinter jsonProducer;
     
-    public LogToJSONDataConverter(Configuration config) {
+    public CSVToJSONDataConverter(Configuration config) {
+        fieldNames = config.readList(FIELDS_KEY, String.class);
+        delimiter = config.readString(DELIMITER_KEY, ",");
         jsonProducer = ProcessingUtilsFactory.getPrinter(config);
-        logParser = ProcessingUtilsFactory.getLogParser(config);
-        if (config.containsKey(ProcessingUtilsFactory.CUSTOM_FIELDS_KEY)) {
-            fields = config.readList(ProcessingUtilsFactory.CUSTOM_FIELDS_KEY, String.class);
-        }
     }
 
     @Override
     public ByteBuffer convert(ByteBuffer data) throws DataConversionException {
+        final Map<String, Object> recordMap = new LinkedHashMap<String, Object>();
         String dataStr = ByteBuffers.toString(data, StandardCharsets.UTF_8);
         
         // Preserve the NEW_LINE at the end of the JSON record
@@ -65,19 +68,28 @@ public class LogToJSONDataConverter implements IDataConverter {
             dataStr = dataStr.substring(0, (dataStr.length() - NEW_LINE.length()));
         }
         
-        Map<String, Object> recordMap;
+        String[] columns = dataStr.split(delimiter);
         
-        try {
-            recordMap = logParser.parseLogRecord(dataStr, fields);
-        } catch (LogParsingException e) {
-            // ignore the record if a LogParsingException is thrown
-            // the record is filtered out in this case
-            Logging.getLogger(getClass()).debug("Getting exception while parsing record: [" + dataStr
-                    + "], record will be skipped", e);
-            return null;
+        for (int i = 0; i < fieldNames.size(); i++) {
+            try {
+                recordMap.put(fieldNames.get(i), columns[i]);
+            } catch (ArrayIndexOutOfBoundsException e) {
+                LoggerFactory.getLogger(getClass()).debug("Null field in CSV detected");
+                recordMap.put(fieldNames.get(i), null);
+            } catch (Exception e) {
+                throw new DataConversionException("Unable to create the column map", e);
+            }
         }
         
         String dataJson = jsonProducer.writeAsString(recordMap) + NEW_LINE;
+        
         return ByteBuffer.wrap(dataJson.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + 
+               "{ delimiter: [" + delimiter + "], " +
+               "fields: " + fieldNames.toString() + "}";
     }
 }
