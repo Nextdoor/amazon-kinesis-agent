@@ -27,7 +27,6 @@
 
     <properties>
         <aws-java-sdk.version>1.11.28</aws-java-sdk.version>
-        <junit.version>4.12</junit.version>
         <license-maven-plugin.version>1.13</license-maven-plugin.version>
         <maven-assembly-plugin.version>3.1.0</maven-assembly-plugin.version>
         <maven-compiler-plugin.version>3.6.0</maven-compiler-plugin.version>
@@ -36,6 +35,18 @@
     </properties>
 
     <dependencies>
+        <dependency>
+          <groupId>org.testng</groupId>
+          <artifactId>testng</artifactId>
+          <version>6.14.3</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.mockito</groupId>
+          <artifactId>mockito-all</artifactId>
+          <version>1.10.19</version>
+          <scope>test</scope>
+       </dependency>
         <dependency>
           <groupId>com.amazonaws</groupId>
           <artifactId>aws-java-sdk-core</artifactId>
@@ -175,25 +186,6 @@
           <groupId>org.projectlombok</groupId>
           <artifactId>lombok</artifactId>
           <version>1.16.6</version>
-        </dependency>
-
-        <dependency>
-          <groupId>junit</groupId>
-          <artifactId>junit</artifactId>
-          <version>${junit.version}</version>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.mockito</groupId>
-          <artifactId>mockito-all</artifactId>
-          <version>1.10.19</version>
-          <scope>test</scope>
-       </dependency>
-        <dependency>
-          <groupId>org.testng</groupId>
-          <artifactId>testng</artifactId>
-          <version>6.14.3</version>
-          <scope>test</scope>
         </dependency>
     </dependencies>
 
