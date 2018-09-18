@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.amazon.kinesis.streaming.agent.metrics.IMetricsScope;
+import com.google.common.base.Strings;
 import lombok.Getter;
 
 import org.joda.time.Duration;
@@ -64,6 +66,7 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
     protected final long minTimeBetweenFilePollsMillis;
     protected final long maxTimeBetweenFileTrackerRefreshMillis;
     private AbstractScheduledService metricsEmitter;
+    private AbstractScheduledService metricsLogger;
 
     private boolean isInitialized = false;
     private final AtomicLong recordsTruncated = new AtomicLong();
@@ -84,7 +87,7 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
         this.fileTracker = new SourceFileTracker(this.agentContext, this.flow);
         this.minTimeBetweenFilePollsMillis = flow.minTimeBetweenFilePollsMillis();
         this.maxTimeBetweenFileTrackerRefreshMillis = flow.maxTimeBetweenFileTrackerRefreshMillis();
-        this.metricsEmitter = new AbstractScheduledService() {
+        this.metricsLogger = new AbstractScheduledService() {
             @Override
             protected void runOneIteration() throws Exception {
                 FileTailer.this.emitStatus();
@@ -92,8 +95,37 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
 
             @Override
             protected Scheduler scheduler() {
-                return Scheduler.newFixedRateSchedule(FileTailer.this.agentContext.logStatusReportingPeriodSeconds(),
-                        FileTailer.this.agentContext.logStatusReportingPeriodSeconds(), TimeUnit.SECONDS);
+                return Scheduler.newFixedRateSchedule(
+                        FileTailer.this.agentContext.logStatusReportingPeriodSeconds(),
+                        FileTailer.this.agentContext.logStatusReportingPeriodSeconds(),
+                        TimeUnit.SECONDS);
+            }
+
+            @Override
+            protected String serviceName() {
+                return FileTailer.this.serviceName() + ".MetricsLogger";
+            }
+
+            @Override
+            protected void shutDown() throws Exception {
+                LOGGER.debug("{}: shutting down...", serviceName());
+                // Emit status one last time before shutdown
+                FileTailer.this.emitStatus();
+                super.shutDown();
+            }
+        };
+        this.metricsEmitter = new AbstractScheduledService() {
+            @Override
+            protected void runOneIteration() throws Exception {
+                FileTailer.this.emitMetrics();
+            }
+
+            @Override
+            protected Scheduler scheduler() {
+                return Scheduler.newFixedRateSchedule(
+                        FileTailer.this.agentContext.cloudwatchMetricGranularitySeconds(),
+                        FileTailer.this.agentContext.cloudwatchMetricGranularitySeconds(),
+                        TimeUnit.SECONDS);
             }
 
             @Override
@@ -105,7 +137,7 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
             protected void shutDown() throws Exception {
                 LOGGER.debug("{}: shutting down...", serviceName());
                 // Emit status one last time before shutdown
-                FileTailer.this.emitStatus();
+                FileTailer.this.emitMetrics();
                 super.shutDown();
             }
         };
@@ -214,6 +246,7 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
         LOGGER.debug("{}: Starting up...", serviceName());
         super.startUp();
         initialize();
+        metricsLogger.startAsync();
         metricsEmitter.startAsync();
         publisher.startPublisher();
     }
@@ -223,6 +256,7 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
         LOGGER.debug("{}: Shutdown triggered...", serviceName());
         super.triggerShutdown();
         publisher.stopPublisher();
+        metricsLogger.stopAsync();
         metricsEmitter.stopAsync();
     }
 
@@ -390,6 +424,43 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
     @Override
     public Object heartbeat(AgentContext agent) {
         return publisher.heartbeat(agent);
+    }
+
+    /**
+     * This method will run in a loop and emit metrics out to CloudWatch. The initial version of
+     * this function is pretty simple and explicitly pushes out a small subset of metrics. The
+     * overall internal metrics collected are hugely diverse and would be pretty expensive to
+     * send them all to CW.
+     *
+     * Note, this emits a "snapshot" of the current state of the agent .. so its frequency of
+     * operation is purely up to the end user. The more frequently this is called, the more
+     * "Metrics" are sent to CloudWatch, and thus the more costly it is. The less frequently they
+     * are sent, the lower the granularity of the metric will be.
+     *
+     * TODO: Implement a whitelist-type configuration setting so people can select their own
+     * metrics to send to CW.
+     */
+    private void emitMetrics() {
+        try {
+            // Generate our CloudWatch metric scope and put in the appropriate dimensions.
+            IMetricsScope metrics = agentContext.beginScope();
+
+            metrics.addDimension("Source", this.flow.sourceFile.toString());
+            metrics.addDimension("Destination", this.flow.getDestination());
+            metrics.addDimension(Metrics.CLASS_DIMENSION, FileTailer.class.toString());
+
+            if (!Strings.isNullOrEmpty(agentContext.getInstanceTag())) {
+                metrics.addDimension(Metrics.INSTANCE_DIMENSION, agentContext.getInstanceTag());
+            }
+
+            metrics.addCount("FileTailer.FilesBehind", filesBehind());
+            metrics.addCount("FileTailer.BytesBehind", bytesBehind());
+            metrics.addCount("FileTailer.RecordsTruncated", recordsTruncated.longValue());
+
+            metrics.commit();
+        } catch (Exception e) {
+            LOGGER.error("{}: Failed while emitting tailer metrics.", serviceName(), e);
+        }
     }
 
     private void emitStatus() {
