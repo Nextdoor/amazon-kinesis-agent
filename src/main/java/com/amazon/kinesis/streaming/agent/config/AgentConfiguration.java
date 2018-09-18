@@ -30,11 +30,12 @@ public class AgentConfiguration extends Configuration {
     static final boolean DEFAULT_CW_EMIT_METRICS = true;
     static final boolean DEFAULT_CW_TAG_INSTANCE = false;
     static final long DEFAULT_CW_BUFFER_TIME_MILLIS = 30_000L;
+    static final int DEFAULT_CW_METRIC_GRANULARITY_SECONDS = 60;
     static final boolean DEFAULT_LOG_EMIT_METRICS = false;
     static final boolean DEFAULT_LOG_EMIT_INTERNAL_METRICS = false;
     static final int DEFAULT_LOG_STATUS_REPORTING_PERIOD_SECONDS = 30;
     static final int DEFAULT_CHECKPOINT_TTL_DAYS = 7;
-    protected static final int DEFAULT_ASSUME_ROLE_DURATION_SECONDS = 
+    protected static final int DEFAULT_ASSUME_ROLE_DURATION_SECONDS =
     		(int) TimeUnit.HOURS.toSeconds(1);
 
     // NOTE: If changing the default make sure to change SHUTDOWN_TIME variable in `bin/aws-kinesis-agent` as well...
@@ -79,6 +80,7 @@ public class AgentConfiguration extends Configuration {
                 DEFAULT_LOG_EMIT_INTERNAL_METRICS);
     }
 
+
     public int logStatusReportingPeriodSeconds() {
         return this.readInteger("log.statusReportingPeriodSeconds",
                 DEFAULT_LOG_STATUS_REPORTING_PERIOD_SECONDS);
@@ -88,10 +90,15 @@ public class AgentConfiguration extends Configuration {
         return this.readBoolean("cloudwatch.emitMetrics",
                 DEFAULT_CW_EMIT_METRICS);
     }
-    
+
     public boolean cloudwatchTagInstance() {
         return this.readBoolean("cloudwatch.tagInstance",
                 DEFAULT_CW_TAG_INSTANCE);
+    }
+
+    public int cloudwatchMetricGranularitySeconds() {
+        return this.readInteger("cloudwatch.metricGranularitySeconds",
+                DEFAULT_CW_METRIC_GRANULARITY_SECONDS);
     }
 
     public long cloudwatchMetricsBufferTimeMillis() {

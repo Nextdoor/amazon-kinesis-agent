@@ -34,8 +34,9 @@ public class Metrics implements IMetricsContext {
     public static final Pattern PARSER_TOTAL_RECORDS_PROCESSED_METRIC = Pattern.compile("^.*Parser.TotalRecordsProcessed$");
     public static final Pattern PARSER_TOTAL_RECORDS_SKIPPED_METRIC = Pattern.compile("^.*Parser.TotalRecordsSkipped$");
 
+    public static final String CLASS_DIMENSION = "Class";
     public static final String DESTINATION_DIMENSION = "Destination";
-    public static final String INSTANCE_DIMENSION = "Instance";
+    public static final String INSTANCE_DIMENSION = "InstanceId";
 
     private IMetricsFactory factory;
 
