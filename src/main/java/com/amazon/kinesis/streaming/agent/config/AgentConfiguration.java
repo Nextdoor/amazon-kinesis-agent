@@ -15,6 +15,8 @@ package com.amazon.kinesis.streaming.agent.config;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -28,6 +30,7 @@ public class AgentConfiguration extends Configuration {
 
     static final int DEFAULT_CW_QUEUE_SIZE = 10_000;
     static final boolean DEFAULT_CW_EMIT_METRICS = true;
+    static final ArrayList<String> DEFAULT_CW_METRIC_WHITELIST = new ArrayList<String>();
     static final boolean DEFAULT_CW_TAG_INSTANCE = false;
     static final long DEFAULT_CW_BUFFER_TIME_MILLIS = 30_000L;
     static final int DEFAULT_CW_METRIC_GRANULARITY_SECONDS = 60;
@@ -89,6 +92,10 @@ public class AgentConfiguration extends Configuration {
     public boolean cloudwatchEmitMetrics() {
         return this.readBoolean("cloudwatch.emitMetrics",
                 DEFAULT_CW_EMIT_METRICS);
+    }
+
+    public List<String> cloudwatchMetricWhitelist() {
+        return this.readList("cloudwatch.metricWhitelist", String.class, DEFAULT_CW_METRIC_WHITELIST);
     }
 
     public boolean cloudwatchTagInstance() {

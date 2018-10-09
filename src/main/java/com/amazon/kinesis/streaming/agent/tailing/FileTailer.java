@@ -247,7 +247,10 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
         super.startUp();
         initialize();
         metricsLogger.startAsync();
-        metricsEmitter.startAsync();
+        if (flow.cwEmitMetrics) {
+            LOGGER.info("{}: Will push CloudWatch Metrics", serviceName());
+            metricsEmitter.startAsync();
+        }
         publisher.startPublisher();
     }
 
@@ -257,7 +260,9 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
         super.triggerShutdown();
         publisher.stopPublisher();
         metricsLogger.stopAsync();
-        metricsEmitter.stopAsync();
+        if (flow.cwEmitMetrics) {
+            metricsEmitter.stopAsync();
+        }
     }
 
     @Override
@@ -374,7 +379,7 @@ public class FileTailer<R extends IRecord> extends AbstractExecutionThreadServic
             boolean resetParsing = false;
             boolean refreshed = false;
             long elapsedSinceLastRefresh = System.currentTimeMillis() - fileTracker.getLastRefreshTimestamp();
-            // Refresh sparingly to save CPU cycles and unecessary IO...
+            // Refresh sparingly to save CPU cycles and unnecessary IO...
             if(forceRefresh
                     || elapsedSinceLastRefresh >= maxTimeBetweenFileTrackerRefreshMillis
                     || fileTracker.mustRefresh()) {

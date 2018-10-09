@@ -18,10 +18,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -412,10 +409,22 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
 
             for (Map.Entry<String, Object> entry : getMetrics().get(AGENT).entrySet()) {
                 String key = entry.getKey();
+                List<String> whitelist = agentContext.cloudwatchMetricWhitelist();
 
-                String stringToConvert = String.valueOf(entry.getValue());
-                Long convertedLong = Long.parseLong(stringToConvert);
-                metrics.addCount(key, convertedLong);
+                /**
+                 * If the metricsWhitelist is empty, OR if the list has data and the metric key
+                 * name matches something in the whitelist, then go ahead and add this metric.
+                 */
+                if (whitelist.isEmpty() || whitelist.contains(key)) {
+                    logger.debug("{}: adding metric {}", serviceName(), key);
+                    String stringToConvert = String.valueOf(entry.getValue());
+                    Long convertedLong = Long.parseLong(stringToConvert);
+                    metrics.addCount(key, convertedLong);
+                } else {
+                    logger.debug(
+                            "{}: skipping metric {}, whitelist: {}",
+                            serviceName(), key, whitelist.toString());
+                }
             }
 
             metrics.commit();
