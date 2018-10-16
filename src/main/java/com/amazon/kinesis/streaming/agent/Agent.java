@@ -18,15 +18,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.amazon.kinesis.streaming.agent.metrics.IMetricsScope;
+import com.google.common.base.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -194,6 +193,7 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
     private final Stopwatch uptime = Stopwatch.createUnstarted();
     private String name;
     private AbstractScheduledService metricsEmitter;
+    private AbstractScheduledService metricsLogger;
 
     public Agent(AgentContext agentContext) {
         this.logger = LoggerFactory.getLogger(Agent.class);
@@ -211,7 +211,7 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
                 return getClass().getSimpleName() + "[" + state().toString() + "]";
             }
         };
-        this.metricsEmitter = new AbstractScheduledService() {
+        this.metricsLogger = new AbstractScheduledService() {
             @Override
             protected void runOneIteration() throws Exception {
                 Agent.this.emitStatus();
@@ -219,8 +219,37 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
 
             @Override
             protected Scheduler scheduler() {
-                return Scheduler.newFixedRateSchedule(Agent.this.agentContext.logStatusReportingPeriodSeconds(),
-                        Agent.this.agentContext.logStatusReportingPeriodSeconds(), TimeUnit.SECONDS);
+                return Scheduler.newFixedRateSchedule(
+                        Agent.this.agentContext.logStatusReportingPeriodSeconds(),
+                        Agent.this.agentContext.logStatusReportingPeriodSeconds(),
+                        TimeUnit.SECONDS);
+            }
+
+            @Override
+            protected String serviceName() {
+                return Agent.this.serviceName() + ".MetricsLogger";
+            }
+
+            @Override
+            protected void shutDown() throws Exception {
+                logger.debug("{}: shutting down...", serviceName());
+                // Emit status one last time before shutdown
+                Agent.this.emitStatus();
+                super.shutDown();
+            }
+        };
+        this.metricsEmitter = new AbstractScheduledService() {
+            @Override
+            protected void runOneIteration() throws Exception {
+                Agent.this.emitMetrics();
+            }
+
+            @Override
+            protected Scheduler scheduler() {
+                return Scheduler.newFixedRateSchedule(
+                        Agent.this.agentContext.cloudwatchMetricGranularitySeconds(),
+                        Agent.this.agentContext.cloudwatchMetricGranularitySeconds(),
+                        TimeUnit.SECONDS);
             }
 
             @Override
@@ -232,7 +261,7 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
             protected void shutDown() throws Exception {
                 logger.debug("{}: shutting down...", serviceName());
                 // Emit status one last time before shutdown
-                Agent.this.emitStatus();
+                Agent.this.emitMetrics();
                 super.shutDown();
             }
         };
@@ -270,6 +299,7 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
                     tailer.awaitRunning();
                 }
             }
+            metricsLogger.startAsync();
             metricsEmitter.startAsync();
         } catch (Exception e) {
             logger.error("Unhandled exception during startup.", e);
@@ -290,6 +320,7 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
                 for (FileFlow<?> flow : agentContext.flows()) {
                     flow.getTailer().stopAsync();
                 }
+                metricsLogger.stopAsync();
                 metricsEmitter.stopAsync();
                 heartbeat.stopAsync();
                 sendingExecutor.shutdown(); // no more tasks are accepted, but current tasks will try to finish
@@ -355,6 +386,50 @@ public class Agent extends AbstractIdleService implements IHeartbeatProvider {
                 System.err.println(msg);
                 e.printStackTrace();
             }
+        }
+    }
+
+    /**
+     * Simple function that runs in the background and send our high level Agent metrics to
+     * CloudWatch. More detailed metrics are sent by the KinesisSender/FirehoseSender/FileTailer
+     * objects.
+     *
+     * Note, this emits a "snapshot" of the current state of the agent .. so its frequency of
+     * operation is purely up to the end user. The more frequently this is called, the more
+     * "Metrics" are sent to CloudWatch, and thus the more costly it is. The less frequently they
+     * are sent, the lower the granularity of the metric will be.
+     */
+    private void emitMetrics() {
+        try {
+            IMetricsScope metrics = agentContext.beginScope();
+            metrics.addDimension(Metrics.CLASS_DIMENSION, AGENT);
+            if (!Strings.isNullOrEmpty(agentContext.getInstanceTag())) {
+                metrics.addDimension(Metrics.INSTANCE_DIMENSION, agentContext.getInstanceTag());
+            }
+
+            for (Map.Entry<String, Object> entry : getMetrics().get(AGENT).entrySet()) {
+                String key = entry.getKey();
+                List<String> whitelist = agentContext.cloudwatchMetricWhitelist();
+
+                /**
+                 * If the metricsWhitelist is empty, OR if the list has data and the metric key
+                 * name matches something in the whitelist, then go ahead and add this metric.
+                 */
+                if (whitelist.isEmpty() || whitelist.contains(key)) {
+                    logger.debug("{}: adding metric {}", serviceName(), key);
+                    String stringToConvert = String.valueOf(entry.getValue());
+                    Long convertedLong = Long.parseLong(stringToConvert);
+                    metrics.addCount(key, convertedLong);
+                } else {
+                    logger.debug(
+                            "{}: skipping metric {}, whitelist: {}",
+                            serviceName(), key, whitelist.toString());
+                }
+            }
+
+            metrics.commit();
+        } catch (Exception e) {
+            logger.error("{}: Failed while emitting agent metrics.", serviceName(), e);
         }
     }
 

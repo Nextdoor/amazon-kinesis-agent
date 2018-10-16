@@ -48,6 +48,7 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
     private static final long DEFAULT_MIN_TIME_BETWEEN_FILE_POLLS_MILLIS = 100L;
     private static final String MIN_TIME_BETWEEN_FILE_POLLS_MILLIS_KEY = "minTimeBetweenFilePollsMillis";
     private static final long DEFAULT_MAX_TIME_BETWEEN_FILE_TRACKER_REFRESH_MILLIS = 10_000L;
+    private static final Boolean DEFAULT_CW_EMIT_METRICS = false;
     public static final String FILE_PATTERN_KEY = "filePattern";
     public static final String MAX_BUFFER_SIZE_BYTES_KEY = "maxBufferSizeBytes";
     public static final String MAX_BUFFER_SIZE_RECORDS_KEY = "maxBufferSizeRecords";
@@ -59,6 +60,7 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
     public static final String DEFAULT_TRUNCATED_RECORD_TERMINATOR = String.valueOf(Constants.NEW_LINE);
     public static final String CONVERSION_OPTION_KEY = "dataProcessingOptions";
     public static final String FILE_FOOTER_PATTERN = "fileFooterPattern"; //If a line matches this pattern it stops processing the file
+    public static final String CW_EMIT_METRICS_KEY = "cloudwatch.emitMetrics";
 
     @Getter protected final AgentContext agentContext;
     @Getter protected final SourceFile sourceFile;
@@ -77,6 +79,7 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
     @Getter protected final int publishQueueCapacity;
     @Getter protected final IDataConverter dataConverter;
     @Getter protected final Pattern fileFooterPattern;
+    @Getter protected final boolean cwEmitMetrics;
 
     protected FileFlow(AgentContext context, Configuration config) {
         super(config);
@@ -121,6 +124,8 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
         
         List<Configuration> dataProcessingOptions = readList(CONVERSION_OPTION_KEY, Configuration.class, Collections.EMPTY_LIST);
         dataConverter = buildConverterChain(dataProcessingOptions);
+
+        cwEmitMetrics = readBoolean(CW_EMIT_METRICS_KEY, DEFAULT_CW_EMIT_METRICS);
     }
 
     public synchronized FileTailer<R> createTailer(FileCheckpointStore checkpoints, ExecutorService sendingExecutor) throws IOException {
@@ -129,8 +134,7 @@ public abstract class FileFlow<R extends IRecord> extends Configuration {
     }
 
     public boolean logEmitInternalMetrics() {
-        return this.readBoolean("log.emitInternalMetrics",
-                false);
+        return this.readBoolean("log.emitInternalMetrics", false);
     }
 
     public long minTimeBetweenFilePollsMillis() {
