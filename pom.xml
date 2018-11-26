@@ -23,7 +23,7 @@
     </licenses>
 
     <properties>
-        <aws-java-sdk.version>1.11.28</aws-java-sdk.version>
+        <aws-java-sdk.version>1.11.161</aws-java-sdk.version>
     </properties>
 
     <dependencies>
@@ -90,17 +90,17 @@
         <dependency>
           <groupId>org.apache.httpcomponents</groupId>
           <artifactId>httpclient</artifactId>
-          <version>4.5.1</version>
+          <version>4.5.2</version>
         </dependency>
         <dependency>
           <groupId>org.apache.httpcomponents</groupId>
           <artifactId>httpclient-cache</artifactId>
-          <version>4.5.1</version>
+          <version>4.5.2</version>
         </dependency>
         <dependency>
           <groupId>org.apache.httpcomponents</groupId>
           <artifactId>httpmime</artifactId>
-          <version>4.5.1</version>
+          <version>4.5.2</version>
         </dependency>
         <dependency>
           <groupId>org.apache.httpcomponents</groupId>
