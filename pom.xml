@@ -23,14 +23,14 @@
     </licenses>
 
     <properties>
-        <aws-java-sdk.version>1.11.28</aws-java-sdk.version>
+        <aws-java-sdk.version>1.11.546</aws-java-sdk.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>6.11</version>
+            <version>7.3.0</version>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
